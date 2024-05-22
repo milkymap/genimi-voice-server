@@ -36,10 +36,12 @@ class APIServer:
     def compare_texts(self):
         async def inner_handler(source:str, target:str):
             distance = Levenshtein.distance(source, target)
+            length_ = max(len(source), len(target))
+            score = 1 - (distance / length_)
             return JSONResponse(
                 status_code=200,
                 content={
-                    'score': distance
+                    'score': score 
                 }
             )
         return inner_handler
