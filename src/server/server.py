@@ -38,10 +38,27 @@ class APIServer:
             distance = Levenshtein.distance(source, target)
             length_ = max(len(source), len(target))
             score = 1 - (distance / length_)
+
+            completion_res = await self.llm.chat.completions.create(
+                messages=[
+                    {
+                        'role': 'system',
+                        'content': 'your role is to compute a score between two words or phrases. this score must check if the word was spelled correctly. the response is a JSON with two keys: score: float number between 0 and 1 and justification: string to justify the score. use french as main language!'
+                    },
+                    {
+                        'role': 'user',
+                        'content': f'is this "{source}" the same as "{target}"'
+                    }
+                ],
+                model=self.openai_settings.completion_model_name,
+                response_format={'type': 'json_object'}
+            )
+            llm_score = json.loads(completion_res.choices[0].message.content)
             return JSONResponse(
                 status_code=200,
                 content={
-                    'score': score 
+                    'score': score,
+                    'llm_score': llm_score  
                 }
             )
         return inner_handler
