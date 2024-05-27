@@ -11,7 +11,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from typing import List 
-
+from fastapi.middleware.cors import CORSMiddleware
 from aiofiles import open as aio_open 
 from ..schemas.server import Transcription
 
@@ -28,6 +28,15 @@ class APIServer:
             version='0.0.1',
             lifespan=self.lifespan_builder()
         )
+
+        self.api.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
 
         self.api.add_api_route('/compare_texts', endpoint=self.compare_texts(), methods=['POST'])
         self.api.add_api_route('/transcription', endpoint=self.transcription(), methods=['POST'])
