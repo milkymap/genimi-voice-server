@@ -8,12 +8,12 @@ from typing_extensions import Self
 
 from ..log import logger 
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File,status
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from typing import List 
 from fastapi.middleware.cors import CORSMiddleware
 from aiofiles import open as aio_open 
-from ..schemas.server import Transcription
+from ..schemas.server import Transcription,available_lang
 
 import Levenshtein
 
@@ -47,7 +47,6 @@ class APIServer:
             distance = Levenshtein.distance(source, target)
             length_ = max(len(source), len(target))
             score = 1 - (distance / length_)
-
             completion_res = await self.llm.chat.completions.create(
                 messages=[
                     {
@@ -67,24 +66,28 @@ class APIServer:
                 status_code=200,
                 content={
                     'score': score,
-                    'llm_score': llm_score  
-                }
+                    'llm_score': llm_score                    }
             )
         return inner_handler
-        
+    
     def transcription(self):
-        async def inner_handler(upload_file:UploadFile):
-            _, extension = upload_file.filename.split('.')
+        async def inner_handler(lang:str,upload_file:UploadFile):
+            if lang not in available_lang:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"this key {lang} is not available these are the ones available {available_lang}"
+                )
+            _, extension = upload_file.filename.split('.') 
             if extension not in ['mp3', 'wav']:
                 raise HTTPException(
                     status_code=500,
-                    detail=f'file extension must be one of [mp3n wav]'
-                )
-            
+                    detail=f'file extension must be one of [mp3n wav or webm]'
+                    )
             bytestream = await upload_file.read()
             transcription_res = await self.llm.audio.transcriptions.create(
                 file=(upload_file.filename, bytestream),
-                model=self.openai_settings.speech_to_text_model_name
+                model=self.openai_settings.speech_to_text_model_name,
+                language=lang
             )
             return transcription_res.text
         return inner_handler
@@ -126,4 +129,4 @@ class APIServer:
         if exc_type is not None:
             logger.error(exc_value)
             logger.exception(traceback)
-        
+
