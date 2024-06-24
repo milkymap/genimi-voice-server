@@ -9,3 +9,5 @@ python-dotenv
 openai
 aiofiles 
 python-Levenshtein
+
+pydub

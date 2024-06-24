@@ -1,10 +1,24 @@
-
 from pydantic import BaseModel
+from typing import List
 
 class Transcription(BaseModel):
     text:str 
     voice:str='alloy'
     chunk_size:int=65536
+
+class Payload(BaseModel):
+    lang:str
+    target:List[str]
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "lang":"fr",
+                    "target":["papa","maman","refuser"]
+                }
+            ]
+        }
+    }
 
 available_lang=[
         "af",
