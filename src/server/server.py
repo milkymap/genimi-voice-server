@@ -42,11 +42,10 @@ class APIServer:
         self.executor = ThreadPoolExecutor()
         self.api.add_api_route('/compare_texts', endpoint=self.compare_texts(), methods=['POST'])
         self.api.add_api_route('/transcription', endpoint=self.transcription(), methods=['POST'])
-        self.api.add_api_route('/tts', endpoint=self.tts(), methods=['POST'])
+        self.api.add_api_route('/tts', endpoint=self.tts(), methods=['POST','GET'])
         self.api.add_api_route('/transcription-evaluation',endpoint=self.transcription_and_evaluation(),methods=['POST']) 
 
     def compare_texts(self):
-
         async def inner_handler(source:str, target:str):
             distance = Levenshtein.distance(source, target)
             length_ = max(len(source), len(target))
@@ -152,10 +151,9 @@ class APIServer:
             async for bytes_chunk in async_chunk_iterator:
                 buffer.write(bytes_chunk)
             buffer.seek(0)
-            async with aio_open('audio.wav', mode='wb') as fp:
-                await fp.write(buffer.read())
-            return FileResponse('audio.wav')
-
+            # async with aio_open('static/audio.wav', mode='wb') as fp:
+            #     await fp.write(buffer.read())
+            return StreamingResponse(buffer,media_type="audio/wav")
         return inner_handler
     
     def lifespan_builder(self):
